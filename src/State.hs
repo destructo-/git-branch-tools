@@ -8,13 +8,13 @@ module State
 , getInitialState
 , checkout
 , fetch
-, prune
 ) where
 
-import Branch ( filterLocal, filterRemote, findCurrent, Branch, branchName )
+import Branch (filterLocal, filterRemote, findCurrent, Branch, branchName)
 import Commands
 
 data Focus = LeftFocus | RightFocus
+  deriving (Ord, Eq)
 
 data State = State
   { currentBranch :: Maybe Branch
@@ -23,8 +23,7 @@ data State = State
   , selectedLeft :: (Int, Branch)
   , selectedRigth :: (Int, Branch)
   , focus :: Focus
-  , lastOperation :: String
-  }
+  } deriving(Ord, Eq)
 
 
 selectRigth :: State -> State
@@ -83,12 +82,6 @@ fetch state = do
   reloadBranches state
 
 
-prune :: State -> IO State
-prune state = do
-  _ <- gitPrune
-  reloadBranches state
-
-
 getInitialState :: IO State
 getInitialState = do
   loadedList <- getBranchList
@@ -102,7 +95,6 @@ getInitialState = do
     , selectedLeft = head local -- TODO if local is empty application application failed
     , selectedRigth = head remote
     , focus = LeftFocus
-    , lastOperation = "Load success."
     }
 
 

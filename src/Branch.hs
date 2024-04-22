@@ -16,12 +16,13 @@ import Data.List (find)
 import qualified Data.Text as T
 
 data Branch = GitLocal Text | GitCurrent Text | GitRemote Text Text
+  deriving (Ord, Eq)
 
 
 toBranchList :: Text -> [Branch]
-toBranchList input = _toBranch <$> filter validBranch (T.lines input)
+toBranchList input = toBranch <$> filter validBranch (T.lines input)
  where
-  validBranch b = not $ _isHead b || _isDetachedHead b || _isNoBranch b
+  validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
 
 
 filterLocal :: [Branch] -> [Branch]
@@ -37,6 +38,7 @@ filterRemote = filter isRemote
   where
     isRemote (GitRemote _ _) = True
     isRemote _ = False
+
 
 findCurrent :: [Branch] -> Maybe Branch
 findCurrent = find isCurrent
@@ -57,8 +59,8 @@ branchName (GitLocal n) = n
 branchName (GitRemote r n) = r <> "/" <> n
 
 
-_toBranch :: Text -> Branch
-_toBranch line = mkBranch $ T.words $ T.dropWhile isSpace line
+toBranch :: Text -> Branch
+toBranch line = mkBranch $ T.words $ T.dropWhile isSpace line
  where
   mkBranch ("*" : name : _) = GitCurrent name
   mkBranch (name : _) = case T.stripPrefix "remotes/" name of
@@ -71,15 +73,15 @@ _toBranch line = mkBranch $ T.words $ T.dropWhile isSpace line
     name = T.drop 1 rest
 
 
-_isHead :: Text -> Bool
-_isHead = T.isInfixOf "HEAD"
+isHead :: Text -> Bool
+isHead = T.isInfixOf "HEAD"
 
 
-_isDetachedHead :: Text -> Bool
-_isDetachedHead = T.isInfixOf "HEAD detached"
+isDetachedHead :: Text -> Bool
+isDetachedHead = T.isInfixOf "HEAD detached"
 
 
 -- While rebasing git will show "no branch"
 -- e.g. "* (no branch, rebasing branch-name)"
-_isNoBranch :: Text -> Bool
-_isNoBranch = T.isInfixOf "(no branch,"
+isNoBranch :: Text -> Bool
+isNoBranch = T.isInfixOf "(no branch,"

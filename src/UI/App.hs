@@ -17,25 +17,25 @@ run :: IO ()
 run = do
   initialState <- getInitialState
   _ <- defaultMain app initialState
-  putStrLn "done!"
-
+  putStrLn "done"
 
 app :: App State e String
 app = App
-  { appDraw = drawMainScreen
+  { appDraw         = drawMainScreen
   , appChooseCursor = neverShowCursor
   , appHandleEvent  = handleUIEvent
-  , appStartEvent   = pure
+  , appStartEvent   = return ()
   , appAttrMap      = const $ attrMap V.defAttr
-      [ ("selected", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
-      , ("same", fg $ V.rgbColor (255 :: Integer) 215 95)
-      , ("operationLog", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
+      [ ( attrName "selected", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
+      , ( attrName "same", fg $ V.rgbColor (255 :: Integer) 215 95)
+      , ( attrName "statusLine", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
       ]
   }
 
 
 drawMainScreen :: State -> [Widget String]
-drawMainScreen state = [C.hCenter $ drawLocalBox state <+> drawRemoteBox state <=> drawStatusLine state <=> drawLastOperationLog state <=> drawHelp]
+drawMainScreen state =
+  [C.hCenter $ drawLocalBox state <+> drawRemoteBox state <=> drawStatusLine state <=> drawHelp]
 
 
 drawLocalBox :: State -> Widget String
@@ -67,19 +67,20 @@ drawRemoteBox state =
 
 
 drawStatusLine :: State -> Widget String
-drawStatusLine state = padAll 1 $ vBox [ withAttr "statusLine" $ vLimit 1 $ vBox [strWrap $ currentBranchNotification $ currentBranch state ]]
+drawStatusLine state = 
+  padLeftRight 1 $ 
+  vBox 
+    [ withAttr (attrName "statusLine") $ vLimit 1 $ vBox [strWrap $ currentBranchNotification $ currentBranch state ]]
+
 
 drawHelp :: Widget String
-drawHelp = padLeftRight 1 $ vBox [ vLimit 1 $ vBox [strWrap "move: h/j/k/l; fetch: f; prune: p; checkout: Enter; find: /; delete: d; rebase: r; quit: q" ]]
-
-drawLastOperationLog :: State -> Widget String
-drawLastOperationLog state = padLeftRight 1 $ vBox [ withAttr "operationLog" $ vLimit 1 $ vBox [strWrap $ "Last operation: " ++ lastOperation state ]]
+drawHelp = padLeftRight 1 $ vBox [ vLimit 1 $ vBox [strWrap "move: h/j/k/l; fetch: f; checkout: Enter; find: /; delete: d; rebase: r; quit: q" ]]
 
 
 drawFocusedList :: (Int, Branch) -> (Int, Branch) -> Widget String
 drawFocusedList selected focused =
   if selectedIndex == currentIndex
-    then (withAttr "selected" . strWrap) $ T.unpack $ branchName $ snd focused
+    then (withAttr (attrName "selected") . strWrap) $ T.unpack $ branchName $ snd focused
   else
     strWrap $ T.unpack $ branchName $ snd focused
   where
@@ -90,7 +91,7 @@ drawFocusedList selected focused =
 drawNonFocusedList :: (Int, Branch) -> (Int, Branch) -> Widget String
 drawNonFocusedList selected focused =
   if currentLabel == selectedLabel
-    then (withAttr "same" . strWrap) $ T.unpack $ branchName $ snd focused
+    then (withAttr (attrName "same") . strWrap) $ T.unpack $ branchName $ snd focused
   else
     strWrap $ T.unpack $ branchName $ snd focused
   where
@@ -103,28 +104,27 @@ currentBranchNotification Nothing = "failed to detect current branch"
 currentBranchNotification (Just branch) = "now on [" ++ T.unpack (branchName branch) ++ "] branch"
 
 
-handleUIEvent :: State -> BrickEvent n e -> EventM n (Next State)
-handleUIEvent state event =
-  case event of
-    VtyEvent vtype ->
-      case (vtype, state) of
-        (V.EvKey (V.KChar 'q') [], _) -> halt state
-
-        (V.EvKey (V.KChar 'j') [], _) -> continue $ selectNext state
-        (V.EvKey (V.KChar 'k') [], _) -> continue $ selectPrevious state
-        (V.EvKey (V.KChar 'l') [], _) -> continue $ selectRigth state
-        (V.EvKey (V.KChar 'h') [], _) -> continue $ selectLeft state
-        (V.EvKey V.KDown       [], _) -> continue $ selectNext state
-        (V.EvKey V.KUp         [], _) -> continue $ selectPrevious state
-        (V.EvKey V.KRight      [], _) -> continue $ selectRigth state
-        (V.EvKey V.KLeft       [], _) -> continue $ selectLeft state
-
-        (V.EvKey (V.KChar 'f') [], _) -> suspendAndResume $ fetch state
-        (V.EvKey (V.KChar 'p') [], _) -> suspendAndResume $ prune state
-        (V.EvKey (V.KChar 'r') [], _) -> suspendAndResume $ pure state
-        (V.EvKey (V.KChar 'd') [], _) -> suspendAndResume $ pure state
-        (V.EvKey (V.KChar '/') [], _) -> suspendAndResume $ pure state
-        (V.EvKey V.KEnter      [], _) -> suspendAndResume $ checkout state
-
-        _ -> continue state
-    _ -> continue state
+handleUIEvent :: BrickEvent String e -> EventM String State ()
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'q') [])) = halt
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'j') [])) = modify selectNext
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'k') [])) = modify selectPrevious
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'l') [])) = modify selectRigth
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'h') [])) = modify selectLeft
+handleUIEvent (VtyEvent (V.EvKey V.KDown       [])) = modify selectNext
+handleUIEvent (VtyEvent (V.EvKey V.KUp         [])) = modify selectPrevious
+handleUIEvent (VtyEvent (V.EvKey V.KRight      [])) = modify selectRigth
+handleUIEvent (VtyEvent (V.EvKey V.KLeft       [])) = modify selectLeft
+handleUIEvent (VtyEvent (V.EvKey (V.KChar '/') [])) = return ()
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = return ()
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = return ()
+handleUIEvent (VtyEvent (V.EvKey V.KEnter      [])) = do
+  s <- get 
+  suspendAndResume $ do 
+    putStrLn "checkout ..."
+    checkout s 
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'f') [])) = do
+  s <- get
+  suspendAndResume $ do
+    putStrLn "fetching ..."
+    fetch s
+handleUIEvent _ = return ()

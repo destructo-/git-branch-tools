@@ -5,7 +5,6 @@ module Commands
 , getBranchList
 , gitCheckout
 , gitFetch
-, gitPrune
 ) where
 
 import System.Process
@@ -28,6 +27,15 @@ branchesArgs =
   ]
 
 
+branchLog :: Branch -> [Text]
+branchLog branch = 
+  [ "branch"
+  , "log"
+  , "--no-color"
+  , branchLabel branch
+  ] 
+
+
 isGitRepository :: FilePath -> IO Bool
 isGitRepository path = do
   contentList <- getDirectoryContents path
@@ -41,20 +49,37 @@ getBranchList :: IO [Branch]
 getBranchList = toBranchList <$> readGit branchesArgs
 
 
-gitCheckout :: Branch -> IO ExitCode
-gitCheckout branch = spawnGit ["checkout", branchLabel branch]
+gitCheckout :: Branch -> IO Text
+gitCheckout branch = readGitWithExitCode ["checkout", branchLabel branch]
 
 
-gitFetch :: IO ExitCode
-gitFetch = spawnGit ["fetch"]
+gitFetch :: IO Text
+gitFetch = do 
+  message <- readGitWithExitCode ["fetch", "-p"]
+  pure $ orDefault message "fetching done"
 
-
-gitPrune :: IO ExitCode
-gitPrune = spawnGit ["prune"]
 
 readGit :: [Text] -> IO Text
 readGit args = T.pack <$> readProcess "git" (T.unpack <$> args) []
 
 
+readGitWithExitCode :: [Text] -> IO Text
+readGitWithExitCode args = do
+  resp <- readProcessWithExitCode "git" (T.unpack <$> args) []
+  let str = getSecond resp
+  pure $ T.pack str
+
+
 spawnGit :: [Text] -> IO ExitCode
 spawnGit args = waitForProcess =<< spawnProcess "git" (T.unpack <$> args)
+
+-- TODO handle errors on process
+getSecond :: (a, b, c) -> b
+getSecond (_, b, _) = b
+
+
+orDefault :: Text -> String -> Text
+orDefault text fallBack = 
+  if T.null text
+    then T.pack fallBack
+    else text
