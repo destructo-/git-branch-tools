@@ -11,6 +11,7 @@ import qualified Graphics.Vty                as V
 import Branch
 import qualified Data.Text as T
 import State
+import Text.Wrap
 
 
 run :: IO ()
@@ -26,10 +27,18 @@ app = App
   , appHandleEvent  = handleUIEvent
   , appStartEvent   = return ()
   , appAttrMap      = const $ attrMap V.defAttr
-      [ ( attrName "selected", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
-      , ( attrName "same", fg $ V.rgbColor (255 :: Integer) 215 95)
+      [ ( attrName "selected-line", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
+      , ( attrName "same-line", fg $ V.rgbColor (255 :: Integer) 215 95)
       , ( attrName "statusLine", V.rgbColor (255 :: Integer) 215 95 `on` V.rgbColor (38 :: Integer) (38 :: Integer) (38 :: Integer))
       ]
+  }
+
+lineStringSettings :: WrapSettings
+lineStringSettings = WrapSettings 
+  { preserveIndentation = True
+  , breakLongWords = True
+  , fillStrategy = NoFill
+  , fillScope = FillAfterFirst
   }
 
 
@@ -80,9 +89,9 @@ drawHelp = padLeftRight 1 $ vBox [ vLimit 1 $ vBox [strWrap "move: h/j/k/l; fetc
 drawFocusedList :: (Int, Branch) -> (Int, Branch) -> Widget String
 drawFocusedList selected focused =
   if selectedIndex == currentIndex
-    then (withAttr (attrName "selected") . strWrap) $ T.unpack $ branchName $ snd focused
+    then (withAttr (attrName "selected-line") . strWrapWith lineStringSettings) $ T.unpack $ printBranch $ snd focused
   else
-    strWrap $ T.unpack $ branchName $ snd focused
+    strWrapWith lineStringSettings $ T.unpack $ printBranch $ snd focused
   where
     currentIndex = fst focused
     selectedIndex = fst selected
@@ -91,9 +100,9 @@ drawFocusedList selected focused =
 drawNonFocusedList :: (Int, Branch) -> (Int, Branch) -> Widget String
 drawNonFocusedList selected focused =
   if currentLabel == selectedLabel
-    then (withAttr (attrName "same") . strWrap) $ T.unpack $ branchName $ snd focused
+    then (withAttr (attrName "same-line") . strWrapWith lineStringSettings) $ T.unpack $ printBranch $ snd focused
   else
-    strWrap $ T.unpack $ branchName $ snd focused
+    strWrapWith lineStringSettings $ T.unpack $ printBranch $ snd focused
   where
     currentLabel = branchLabel $ snd focused
     selectedLabel = branchLabel $ snd selected
@@ -116,10 +125,14 @@ handleUIEvent (VtyEvent (V.EvKey V.KRight      [])) = modify selectRigth
 handleUIEvent (VtyEvent (V.EvKey V.KLeft       [])) = modify selectLeft
 handleUIEvent (VtyEvent (V.EvKey (V.KChar '/') [])) = return ()
 handleUIEvent (VtyEvent (V.EvKey (V.KChar 'r') [])) = return ()
-handleUIEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = return ()
+handleUIEvent (VtyEvent (V.EvKey (V.KChar 'd') [])) = do
+  s <- get
+  suspendAndResume $ do
+    putStrLn "deleting ..."
+    delete s
 handleUIEvent (VtyEvent (V.EvKey V.KEnter      [])) = do
   s <- get 
-  suspendAndResume $ do 
+  suspendAndResume $ do
     putStrLn "checkout ..."
     checkout s 
 handleUIEvent (VtyEvent (V.EvKey (V.KChar 'f') [])) = do

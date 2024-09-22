@@ -8,8 +8,10 @@ module State
 , getInitialState
 , checkout
 , fetch
+, delete
 ) where
 
+import Utils
 import Branch (filterLocal, filterRemote, findCurrent, Branch, branchName)
 import Commands
 
@@ -82,6 +84,16 @@ fetch state = do
   reloadBranches state
 
 
+delete :: State -> IO State
+delete state = case focus state of
+  LeftFocus -> do
+    _ <- gitDeleteBranch $ snd $ selectedLeft state
+    reloadBranches state
+  RightFocus -> do
+    putStrLn "you can delete only local branches"
+    reloadBranches state
+
+
 getInitialState :: IO State
 getInitialState = do
   loadedList <- getBranchList
@@ -108,10 +120,10 @@ reloadBranches state = do
     { currentBranch = current
     , localBranchList = local
     , remoteBranchList = remote
-    , selectedLeft = updateSelection local $ selectedLeft state
-    , selectedRigth = updateSelection remote $ selectedRigth state
+    , selectedLeft = getOrElse (updateSelection local $ selectedLeft state) (head local)
+    , selectedRigth = getOrElse (updateSelection remote $ selectedRigth state) (head remote)
     }
 
 
-updateSelection :: [(Int, Branch)] -> (Int, Branch) -> (Int, Branch)
-updateSelection list selected = head $ filter (\x -> branchName (snd x) == branchName (snd selected)) list
+updateSelection :: [(Int, Branch)] -> (Int, Branch) -> Maybe (Int, Branch)
+updateSelection list selected = headOpiton $ filter (\x -> branchName (snd x) == branchName (snd selected)) list

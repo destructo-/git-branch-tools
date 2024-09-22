@@ -3,6 +3,7 @@
 module Branch
 ( toBranchList
 , branchName
+, printBranch
 , branchLabel
 , filterLocal
 , filterRemote
@@ -21,8 +22,8 @@ data Branch = GitLocal Text | GitCurrent Text | GitRemote Text Text
 
 toBranchList :: Text -> [Branch]
 toBranchList input = toBranch <$> filter validBranch (T.lines input)
- where
-  validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
+  where
+    validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
 
 
 filterLocal :: [Branch] -> [Branch]
@@ -59,18 +60,24 @@ branchName (GitLocal n) = n
 branchName (GitRemote r n) = r <> "/" <> n
 
 
+printBranch :: Branch -> Text
+printBranch (GitCurrent n) = T.append "* " n
+printBranch (GitLocal n) = T.append "  " n
+printBranch (GitRemote r n) = r <> "/" <> n
+
+
 toBranch :: Text -> Branch
 toBranch line = mkBranch $ T.words $ T.dropWhile isSpace line
- where
-  mkBranch ("*" : name : _) = GitCurrent name
-  mkBranch (name : _) = case T.stripPrefix "remotes/" name of
-    Just rest -> parseRemoteBranch rest
-    Nothing -> GitLocal name
-  mkBranch [] = error "empty branch name"
-  parseRemoteBranch str = GitRemote remote name
-   where
-    (remote, rest) = T.span ('/' /=) str
-    name = T.drop 1 rest
+  where
+    mkBranch ("*" : name : _) = GitCurrent name
+    mkBranch (name : _) = case T.stripPrefix "remotes/" name of
+      Just rest -> parseRemoteBranch rest
+      Nothing -> GitLocal name
+    mkBranch [] = error "empty branch name"
+    parseRemoteBranch str = GitRemote remote name
+      where
+        (remote, rest) = T.span ('/' /=) str
+        name = T.drop 1 rest
 
 
 isHead :: Text -> Bool

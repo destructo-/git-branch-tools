@@ -5,6 +5,7 @@ module Commands
 , getBranchList
 , gitCheckout
 , gitFetch
+, gitDeleteBranch
 ) where
 
 import System.Process
@@ -51,6 +52,12 @@ getBranchList = toBranchList <$> readGit branchesArgs
 
 gitCheckout :: Branch -> IO Text
 gitCheckout branch = readGitWithExitCode ["checkout", branchLabel branch]
+
+
+gitDeleteBranch :: Branch -> IO Text
+gitDeleteBranch branch = do
+  message <- readGitWithExitCode ["branch", "-D", branchLabel branch]
+  pure $ orDefault message "deleted"
 
 
 gitFetch :: IO Text
