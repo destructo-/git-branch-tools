@@ -28,6 +28,9 @@ dependencies:
 - process >= 1.6.13.2
 - mtl >= 2.2.2
 - word-wrap >= 0.5
+- microlens-platform >= 0.4.3.4
+- lens >= 5.2.3
+- vector
 
 ghc-options:
 - -Wall
