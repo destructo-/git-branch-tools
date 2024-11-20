@@ -29,6 +29,8 @@ library
       Config.Config
       Domain.HasTextName
       Handler
+      Model.Action
+      Model.ApplicationEvent
       Model.Branch
       Model.BranchList
       Model.State
@@ -80,8 +82,10 @@ executable gbt
 
 test-suite git-tools-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Main.hs
   other-modules:
+      Model.BranchSpec
+      Spec
       Paths_git_tools
   hs-source-dirs:
       test
@@ -91,6 +95,8 @@ test-suite git-tools-test
     , brick >=0.63
     , directory >=1.3.6.2
     , git-tools
+    , hspec >=2.10.10
+    , hspec-expectations-lifted
     , lens >=5.2.3
     , microlens-platform >=0.4.3.4
     , mtl >=2.2.2

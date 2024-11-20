@@ -10,6 +10,7 @@ import Model.State
 import Control.Lens.Operators
 import Model.WidgetName
 import Model.BranchList
+import Model.Action
 
 data StateService = StateService
   { initState   :: IO State
@@ -17,6 +18,7 @@ data StateService = StateService
   , setFocus    :: WidgetName -> State -> State
   , fetch       :: State -> IO State
   , deleteLocal :: State -> IO State
+  , setAction   :: Action -> State -> State
   }
 
 stateService :: StateService
@@ -26,6 +28,7 @@ stateService = StateService
   , setFocus    = _setFocus
   , fetch       = _fetch
   , deleteLocal = _deleteLocal
+  , setAction   = _setAction
   }
 
 _initState :: IO State
@@ -68,3 +71,6 @@ _fetch state = do
 
 _setFocus :: WidgetName -> State -> State
 _setFocus widgetName = focus .~ widgetName
+
+_setAction :: Action -> State -> State
+_setAction newAction = action .~ newAction

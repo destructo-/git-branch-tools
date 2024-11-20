@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Repository.GitRepository
-( GitRepository(..) 
+( GitRepository(..)
 , gitRepo
 ) where
 
@@ -11,9 +11,10 @@ import System.Process
 import System.Directory
 import Model.Branch
 import Domain.HasTextName
+import Data.Maybe (mapMaybe)
 
 data GitRepository = GitRepository
-  { isGitDirectory :: FilePath -> IO Bool 
+  { isGitDirectory :: FilePath -> IO Bool
   , getBranchList  :: IO [Branch]
   , gitCheckout :: Branch -> IO T.Text
   , gitDeleteBranch :: Branch -> IO T.Text
@@ -21,7 +22,7 @@ data GitRepository = GitRepository
   }
 
 gitRepo :: GitRepository
-gitRepo = GitRepository 
+gitRepo = GitRepository
   { isGitDirectory  = _isGitRepository
   , getBranchList   = _getBranchList
   , gitCheckout     = _gitCheckout
@@ -38,10 +39,10 @@ _isGitRepository path = do
     Nothing -> pure False
 
 _getBranchList :: IO [Branch]
-_getBranchList = toBranchList <$> readGit branchesArgs
+_getBranchList = toBranchList <$> readGit branchesArgs 
 
 _gitCheckout :: Branch -> IO T.Text
-_gitCheckout branch = 
+_gitCheckout branch =
   readGitWithExitCode ["checkout", getName branch]
 
 _gitDeleteBranch :: Branch -> IO T.Text
@@ -61,6 +62,7 @@ branchesArgs =
   , "--sort=-committerdate"
   , "--no-column"
   , "--no-color"
+  , "--format=%(HEAD) %(refname) %(committerdate:short)"
   ]
 
 -- read console response utils
@@ -75,17 +77,4 @@ readGitWithExitCode args = do
 
 -- console response => Branch utils
 toBranchList :: T.Text -> [Branch]
-toBranchList input = makeBranch <$> filter validBranch (T.lines input)
-  where
-    validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
-
-isHead :: T.Text -> Bool
-isHead = T.isInfixOf "HEAD"
-
-isDetachedHead :: T.Text -> Bool
-isDetachedHead = T.isInfixOf "HEAD detached"
-
--- While rebasing git will show "no branch"
--- e.g. "* (no branch, rebasing branch-name)"
-isNoBranch :: T.Text -> Bool
-isNoBranch = T.isInfixOf "(no branch,"
+toBranchList input = makeBranch `mapMaybe` T.lines input

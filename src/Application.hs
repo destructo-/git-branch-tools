@@ -14,21 +14,23 @@ import Config.Config
 import Widget.BranchListWidget
 import Control.Lens.Operators
 import Widget.StatusLine
+import Model.ApplicationEvent
 
-application :: App State e WidgetName 
-application = App 
+application :: BC.BChan ApplicationEvent -> App State ApplicationEvent WidgetName 
+application channel = App 
   { appDraw         = drawMainScreen
   , appChooseCursor = neverShowCursor
-  , appHandleEvent  = eventHandler
+  , appHandleEvent  = eventHandler channel
   , appStartEvent   = return ()
   , appAttrMap      = const $ themeToAttrMap theme
   }
 
 drawMainScreen :: State -> [Widget WidgetName]
 drawMainScreen state = 
-  [C.hCenter $ drawLocalBranchList state <+> drawRemoteBranchList state <=> drawStatusLine selected <=> drawHelp]
+  [C.hCenter $ drawLocalBranchList state <+> drawRemoteBranchList state <=> drawStatusLine lastAction selected  <=> drawHelp]
   where 
-    selected = state ^. currentBranch
+    selected   = state ^. currentBranch
+    lastAction = state ^. action
 
 drawLocalBranchList :: State -> Widget WidgetName
 drawLocalBranchList state = 

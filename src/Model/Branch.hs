@@ -3,29 +3,29 @@ module Model.Branch where
 
 import qualified Data.Text as T
 
-import Data.Text
-import Data.Char (isSpace)
 import Domain.HasTextName
+import Control.Monad (mfilter)
+import Control.Applicative
 
 type Name   = T.Text
 type Origin = T.Text
 
 data Branch
-  = BranchLocal Name 
-  | BranchCurrent Name 
+  = BranchLocal Name
+  | BranchCurrent Name
   | BranchRemote Origin Name
   deriving (Ord, Eq)
 
 instance Show Branch where
-  show (BranchLocal name)         = unpack $ "  " <> name
-  show (BranchCurrent name)       = unpack $ "* " <> name
-  show (BranchRemote origin name) = unpack $ origin <> "/" <> name
+  show (BranchLocal name)         = T.unpack $ "  " <> name
+  show (BranchCurrent name)       = T.unpack $ "* " <> name
+  show (BranchRemote origin name) = T.unpack $ origin <> "/" <> name
 
 instance HasTextName Branch where
   getName (BranchLocal    name) = name
   getName (BranchCurrent  name) = name
   getName (BranchRemote _ name) = name
-  
+
 isLocal :: Branch -> Bool
 isLocal (BranchLocal _)   = True
 isLocal (BranchCurrent _) = True
@@ -39,15 +39,22 @@ isCurrent :: Branch -> Bool
 isCurrent (BranchCurrent _) = True
 isCurrent _                 = False
 
-makeBranch :: T.Text -> Branch
-makeBranch line = mkBranch $ T.words $ T.dropWhile isSpace line
+makeBranch :: T.Text -> Maybe Branch
+makeBranch text =
+  mfilter isBranch (remote <|> local <|> current) >>= \t -> case T.words t of
+    ("*" : name : _)          -> Just $ BranchCurrent name
+    ("l" : name : _)          -> Just $ BranchLocal name
+    ("r" : origin : name : _) -> Just $ BranchRemote origin name
+    _                         -> Nothing
   where
-    mkBranch ("*" : name : _) = BranchCurrent name
-    mkBranch (name : _) = case T.stripPrefix "remotes/" name of
-      Just rest -> parseRemoteBranch rest
-      Nothing -> BranchLocal name
-    mkBranch [] = error "empty branch name"
-    parseRemoteBranch str = BranchRemote remote name
-      where
-        (remote, rest) = T.span ('/' /=) str
-        name = T.drop 1 rest
+    isHead         = T.isInfixOf "HEAD"
+    isDetachedHead = T.isInfixOf "HEAD detached"
+    isNoBranch     = T.isInfixOf "(no branch,"
+    isBranch t     = not $ isHead t || isDetachedHead t || isNoBranch t
+    local          = T.append "l " <$> T.stripPrefix "refs/heads/" (T.stripStart text)
+    current        = T.append "* " <$> (T.stripPrefix "* " text >>= T.stripPrefix "refs/heads/")
+    remote         = T.append "r " 
+      <$> (\(x,y) -> x <> " " <> T.drop 1 y) 
+      <$> T.span ('/' /=)
+      <$> T.stripPrefix "refs/remotes/" (T.stripStart text)
+

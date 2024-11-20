@@ -59,11 +59,14 @@ executables:
 
 tests:
   git-tools-test:
-    main:                Spec.hs
+    main:                Main.hs
     source-dirs:         test
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    #  - '"-with-rtsopts=-N -qg"'
     dependencies:
     - git-tools
+    - hspec >= 2.10.10
+    - hspec-expectations-lifted

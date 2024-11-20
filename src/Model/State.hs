@@ -1,15 +1,20 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Model.State where
 
+import qualified Data.Text as T
+
 import Model.Branch 
 import Control.Lens (makeLenses)
 import Data.List (find)
 import Control.Lens.Operators
 import Model.WidgetName
 import Model.BranchList
+import Model.Action
 
 data State = State 
-  { _currentBranch    :: Maybe Branch
+  { _action           :: Action
+  , _actionSubject    :: Maybe T.Text
+  , _currentBranch    :: Maybe Branch
   , _localBranchList  :: BranchList
   , _remoteBranchList :: BranchList
   , _focus            :: WidgetName
@@ -20,7 +25,9 @@ makeLenses ''State
 
 emptyState :: State 
 emptyState = State 
-  { _currentBranch    = Nothing 
+  { _action           = LoadFinish
+  , _actionSubject    = Nothing
+  , _currentBranch    = Nothing 
   , _localBranchList  = branchListEmpty Local
   , _remoteBranchList = branchListEmpty Remote
   , _focus            = Local
