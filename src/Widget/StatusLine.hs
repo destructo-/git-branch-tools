@@ -17,7 +17,7 @@ drawStatusLine event branch =
   padLeftRight 1 $ 
   hBox 
     [ (C.hCenter $ padTopBottom 1 $ withAttr attrStatsLine $ vLimit 1 $ str $ branchNotification branch)
-    <=> (C.hCenter $ padTopBottom 1 $ withAttr attrStatsLine $ vLimit 1 $ str $ eventNotification event)
+    <=> (C.hCenter $ padTopBottom 1 $ withAttr attrActionLine $ vLimit 1 $ str $ eventNotification event)
     ]
 
 branchNotification :: Maybe Branch -> String
@@ -25,4 +25,4 @@ branchNotification Nothing = "failed to detect current branch"
 branchNotification (Just branch) = "now on [" ++ showName branch ++ "] branch"
 
 eventNotification :: Action -> String
-eventNotification ev = show ev
+eventNotification = show

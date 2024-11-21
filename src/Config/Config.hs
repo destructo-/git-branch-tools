@@ -16,6 +16,7 @@ theme =
     , (List.listSelectedAttr, fg defYellow)
     , (List.listSelectedFocusedAttr, defYellow `on` defDarkGray)
     , (attrStatsLine, fg defYellow)
+    , (attrActionLine, withStyle (fg white) bold)
     ]
 
 -- #ffd75f
@@ -28,3 +29,6 @@ defDarkGray = rgbColor (38 :: Integer) 38 38
 
 attrStatsLine :: AttrName
 attrStatsLine = attrName "status-line"
+
+attrActionLine :: AttrName
+attrActionLine = attrName "action-line"
