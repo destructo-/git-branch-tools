@@ -4,7 +4,7 @@ Simple terminal ui for work with git branches
 
 install [`stack`](https://docs.haskellstack.org/en/stable/#how-to-install-stack)
 
-initialise stack's project-level YAML configuration file for an existing project
+initialise stack's project-level YAML configuration file
 ```bash
 $ stack init
 ```
