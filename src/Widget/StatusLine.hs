@@ -13,16 +13,27 @@ import Model.WidgetName
 import Model.Action
 
 drawStatusLine :: Action -> Maybe Branch -> Widget WidgetName
-drawStatusLine event branch = 
+drawStatusLine action branch = 
   padLeftRight 1 $ 
-  hBox 
-    [ (C.hCenter $ padTopBottom 1 $ withAttr attrStatsLine $ vLimit 1 $ str $ branchNotification branch)
-    <=> (C.hCenter $ padTopBottom 1 $ withAttr attrActionLine $ vLimit 1 $ str $ eventNotification event)
-    ]
+  hBox [ drawBranchLine branch <=> drawActionLine action ]
 
-branchNotification :: Maybe Branch -> String
-branchNotification Nothing = "failed to detect current branch"
-branchNotification (Just branch) = "now on [" ++ showName branch ++ "] branch"
+drawBranchLine :: Maybe Branch -> Widget WidgetName
+drawBranchLine branch =
+  C.hCenter $
+  padTopBottom 1 $
+  withAttr attrStatsLine $
+  vLimit 1 $
+  str notification
+  where
+    notification = case branch of
+      Just b  -> "now on [" ++ showName b ++ "] branch"
+      Nothing -> "failed to detect current branch"
 
-eventNotification :: Action -> String
-eventNotification = show
+drawActionLine :: Action -> Widget WidgetName
+drawActionLine action =
+  C.hCenter $
+  padTopBottom 1 $
+  withAttr attrActionLine $
+  vLimit 1 $
+  str $
+  show action
